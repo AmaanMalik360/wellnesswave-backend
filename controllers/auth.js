@@ -12,6 +12,10 @@ const register = async (req, res) => {
 
     if (!email) 
       return res.status(400).send({ success: false, message: "Email is required"});
+    
+    let userExist = await User.findOne({ email });
+    if (userExist) 
+      return res.status(400).send({ success: false, message: "Email is already taken"});
 
     if (!password || password.length < 6) {
       return res
@@ -55,17 +59,11 @@ const register = async (req, res) => {
       if (!regRoll.test(rollNo))
         return res.status(400).send({ success: false, message: "Roll number is invalid"});
 
-      let userExist = await User.findOne({ email });
-      if (userExist) 
-        return res.status(400).send({ success: false, message: "Email is already taken"});
-
-      console.log(userExist)
-      if(userExist)
-      {
-        if (userExist['studentDetails']['rollNo'] === rollNo) {
-          return res.status(400).send({ success: false, message: "Roll No is already taken" });
-        }
-      }
+      // Check if any user already has the provided rollNo in their studentDetails
+      let userRollNoExist = await User.findOne({ role: 'student', 'studentDetails.rollNo': rollNo });
+      if (userRollNoExist) 
+        return res.status(400).send({ success: false, message: "Roll No is already taken" });
+      
         
       const studentDetails = { rollNo, degree }
       // hash the password using bcrypt in hashedPassword variable
@@ -85,16 +83,16 @@ const register = async (req, res) => {
       // Validation for faculty
       // Add validation checks for faculty fields here
 
-      let userExist = await User.findOne({ email });
-      if (userExist) 
-        return res.status(400).send({ success: false, message: "Email is already taken"});
-
-      if(userExist)
-      {
-        if (userExist['facultyDetails']['employeeId'] === employeeId) {
-          return res.status(400).send({ success: false, message: "Employee ID is already taken" });
-        }
-      }  
+      // Check if any user already has the provided employeeId in facultyDetails, staffDetails, or counsellorDetails
+      let empIdExist = await User.findOne({
+        $or: [
+          { role: 'faculty', 'facultyDetails.employeeId': employeeId },
+          { role: 'staff', 'staffDetails.employeeId': employeeId },
+          { role: 'counsellor', 'counsellorDetails.employeeId': employeeId }
+        ]
+      });
+      if (empIdExist) 
+        return res.status(400).send({ success: false, message: "Employee ID is already taken" });
               
       const facultyDetails = {
         employeeId,
@@ -119,20 +117,21 @@ const register = async (req, res) => {
       // Validation for staff
       // Add validation checks for staff fields here
 
-      let userExist = await User.findOne({ email });
-      if (userExist) 
-        return res.status(400).send({ success: false, message: "Email is already taken"});
+      // Check if any user already has the provided employeeId in facultyDetails, staffDetails, or counsellorDetails
+      let empIdExist = await User.findOne({
+        $or: [
+          { role: 'faculty', 'facultyDetails.employeeId': employeeId },
+          { role: 'staff', 'staffDetails.employeeId': employeeId },
+          { role: 'counsellor', 'counsellorDetails.employeeId': employeeId }
+        ]
+      });
+      if (empIdExist) 
+        return res.status(400).send({ success: false, message: "Employee ID is already taken" });
 
-      if(userExist)
-      {
-        if (userExist['staffDetails']['employeeId'] === employeeId) {
-          return res.status(400).send({ success: false, message: "Employee ID is already taken" });
-        }
-      }  
       const staffDetails = {
         employeeId,
-        designation
-      }  
+        designation,
+      };  
 
       // hash the password using bcrypt in hashedPassword variable
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -142,6 +141,40 @@ const register = async (req, res) => {
       console.log("User Saved", user);
       return res.status(200).send({ success: true, message: 'User Created Successfully' });
     } 
+    else if(role === 'counsellor')
+    {
+      
+      // Logic for counsellor registration
+      const { employeeId, designation } = formData;
+
+      // Validation for counsellor
+      // Add validation checks for counsellor fields here
+
+      // Check if any user already has the provided employeeId in facultyDetails, staffDetails, or counsellorDetails
+      let empIdExist = await User.findOne({
+        $or: [
+          { role: 'faculty', 'facultyDetails.employeeId': employeeId },
+          { role: 'staff', 'staffDetails.employeeId': employeeId },
+          { role: 'counsellor', 'counsellorDetails.employeeId': employeeId }
+        ]
+      });
+
+      if (empIdExist) 
+        return res.status(400).send({ success: false, message: "Employee ID is already taken" });
+      
+      const counsellorDetails = {
+        employeeId,
+        designation
+      }  
+
+      // hash the password using bcrypt in hashedPassword variable
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = new User({ name, email, contact,password: hashedPassword, role, counsellorDetails });
+      await user.save();
+
+      console.log("User Saved", user);
+      return res.status(200).send({ success: true, message: 'User Created Successfully' }); 
+    }
     else {
       return res.status(400).send({ success: false, message: "Invalid role" });
     }
@@ -159,50 +192,26 @@ const login = async (req, res) => {
 
     const user = await User.findOne({ email });
     console.log(user);
-    if (!user) {
-      return res.status(404).send({ message:"No user found"});
-    }
-
+    if (!user) 
+      res.status(404).send({ message:"No user found"});
 
     // Check if the password is correct
     const matchPassword = await bcrypt.compare(password, user.password);
     console.log("Match Password------>",matchPassword)
     if (!matchPassword) 
-      return res.status(400)({ message: 'Invalid credentials'});
+      res.status(400)({ message: 'Invalid credentials'});
 
     const token = jwt.sign(
       { id: user.id }, process.env.JWT_SECRET, { expiresIn: '6h' }
     );
 
-
-      return res.status(200).send({ message: 'User signed in successfully', user, token })
+    res.status(200).send({ message: 'User signed in successfully', user, token })
   } catch (err) {
-    return res.status(400).send({message:"Error. Please try again"});
-  }
-};
-
-const logout = async (req, res) => {
-  try {
-    res.clearCookie("token");
-    return res.json({ message: "Successfully logged out" });
-  } catch (err) {
-    console.log(err);
-  }
-};
-
-const currentUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.auth._id).select("-password").exec();
-    console.log("CURRENT_USER", user);
-    return res.json({ ok: true });
-  } catch (err) {
-    console.log(err);
+    res.status(400).send({message:"Error. Please try again"});
   }
 };
 
 module.exports = {
   register,
   login,
-  logout,
-  currentUser,
 };

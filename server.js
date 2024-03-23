@@ -23,11 +23,11 @@ dotenv.config({ path: './.env' });
 
 // Setting up router
 const authRoutes = require('./routes/auth');
-// const adminRoutes = require('./src/routes/admin')
+const postRoutes = require('./routes/post')
 
 // All the routes are used here.
 app.use(authRoutes);
-// app.use('/admin',adminRoutes);
+app.use(postRoutes);
 
 
 const port = 3002;

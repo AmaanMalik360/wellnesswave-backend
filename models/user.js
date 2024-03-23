@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["student", "faculty", "staff"],
+      enum: ["student", "faculty", "staff", "counsellor"],
       required: true,
     },
     picture: {
@@ -53,6 +53,14 @@ const userSchema = new mongoose.Schema(
       },
     },
     staffDetails: {
+      employeeId: {
+        type: String
+      },
+      designation: {
+        type: String,
+      },
+    },
+    counsellorDetails: {
       employeeId: {
         type: String
       },
