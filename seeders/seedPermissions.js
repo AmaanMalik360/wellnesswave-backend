@@ -12,9 +12,9 @@ mongoose.connect(mongoUri)
 });
 
 const seedPermissions = [
-    {
-        name: 'Active'
-    }
+  {
+    name: 'Active'
+  }
 ]
 
 const seedDB = async () =>{

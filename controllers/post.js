@@ -2,16 +2,32 @@ const Post = require("../models/post");
 
 const createPost = async (req, res) => {
     try {
-        const { heading, body, userId } = req.body;
+        const { heading, body, type, userId } = req.body;
         // Check if heading and body are provided
-        if (!heading || !body) {
-            return res.status(400).json({ error: "Heading and body are required fields" });
+        if (!heading || !body || !type) {
+            return res.status(400).json({ error: "Required Data is missing" });
         }
 
-        // Create the post
+        if(type === 'Exercise'){
+            const { subType } = req.body;
+            // Create the Exercise post
+            const post = new Post({
+                heading,
+                body,
+                type,
+                subType,
+                creator: userId, // Assign the creator to the current user's ID
+            });
+
+            // Save the post to the database
+            await post.save();
+            return res.status(201).json({ message: "Post created Successfully", post:post });
+        }
+        // Create the Survey post
         const post = new Post({
             heading,
             body,
+            type,
             creator: userId, // Assign the creator to the current user's ID
         });
 

@@ -10,6 +10,14 @@ const postSchema = new mongoose.Schema(
         type: String,
         required: true,
     },
+    type: {
+        type: String,
+        enum: ["Survey", "Exercise"],
+        required: true
+    },
+    subType:{
+        type: String
+    },
     creator: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
