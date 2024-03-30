@@ -29,6 +29,30 @@ const postRoutes = require('./routes/post')
 app.use(authRoutes);
 app.use(postRoutes);
 
+// // Define the user object to insert
+// const newUser = {
+//   name: 'Admin 1',
+//   email: 'admin1@gmail.com',
+//   password: 'Admin123',
+//   contact: '03000856074',
+//   role: 'admin',
+//   active: true, // Assuming you want the user to be inactive initially
+//   adminDetails: {
+//     employeeId: 'admin1',
+//     designation: 'Admin'
+//   }
+// };
+
+// // Insert the new user
+// User.create(newUser)
+//   .then((user) => {
+//     console.log('User created successfully:', user);
+//     mongoose.connection.close(); // Close the MongoDB connection
+//   })
+//   .catch((error) => {
+//     console.error('Error creating user:', error);
+//     mongoose.connection.close(); // Close the MongoDB connection in case of error
+//   });
 
 const port = 3002;
 app.listen(port, () => { // Use server.listen instead of app.listen

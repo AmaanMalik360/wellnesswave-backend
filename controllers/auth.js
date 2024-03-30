@@ -175,6 +175,38 @@ const register = async (req, res) => {
       console.log("User Saved", user);
       return res.status(200).send({ success: true, message: 'User Created Successfully' }); 
     }
+    else if(role === 'admin')
+    {
+      
+      // Logic for counsellor registration
+      const { employeeId, designation } = formData;
+
+      // Validation for counsellor
+      // Add validation checks for counsellor fields here
+
+      // Check if any user already has the provided employeeId in facultyDetails, staffDetails, or counsellorDetails
+      let empIdExist = await User.findOne({
+        $or: [
+          { role: 'faculty', 'facultyDetails.employeeId': employeeId },
+          { role: 'staff', 'staffDetails.employeeId': employeeId },
+          { role: 'counsellor', 'counsellorDetails.employeeId': employeeId }
+        ]
+      });
+
+      if (empIdExist) 
+        return res.status(400).send({ success: false, message: "Employee ID is already taken" });
+      
+      const adminDetails = {
+        employeeId,
+        designation
+      }  
+
+      const user = new User({ name, email, contact,password, role, adminDetails });
+      await user.save();
+
+      console.log("User Saved", user);
+      return res.status(200).send({ success: true, message: 'User Created Successfully' }); 
+    }
     else {
       return res.status(400).send({ success: false, message: "Invalid role" });
     }
@@ -195,6 +227,17 @@ const login = async (req, res) => {
     if (!user) 
       res.status(404).send({ message:"No user found"});
 
+    if(user.role === 'admin')
+    {
+      if(password === user.password)
+      {
+        const token = jwt.sign(
+          { id: user.id }, process.env.JWT_SECRET, { expiresIn: '6h' }
+        );
+    
+        return res.status(200).send({ message: 'User signed in successfully', user, token })
+      }
+    }
     // Check if the password is correct
     const matchPassword = await bcrypt.compare(password, user.password);
     console.log("Match Password------>",matchPassword)
@@ -211,7 +254,48 @@ const login = async (req, res) => {
   }
 };
 
+// Controller function to fetch all Users
+const getAllUsers = async (req, res) => {
+  try {
+      const users = await User.find()
+      res.status(200).send({users});
+  } catch (error) {
+      console.error("Error fetching Users:", error);
+      res.status(500).json({ error: "Failed to fetch Users" });
+  }
+};
+
+const changePermission = async (req, res) => {
+  try {
+    console.log('change permission');
+    const { userId } = req.body; // Assuming userId is extracted from JWT payload
+
+    console.log("User Id", userId);
+    
+    // Find the user by userId and toggle the active flag using findByIdAndUpdate
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: { active: { $not: "$active" } } }, // Toggle active flag using $not operator
+      { new: true } // To return the updated document
+    );
+
+    console.log(updatedUser);
+    if (!updatedUser) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    return res.status(200).send({ message: "User permission changed successfully", user: updatedUser });
+  } catch (err) {
+    console.error("Error changing user permission:", err);
+    return res.status(500).send({ message: "Failed to change user permission" });
+  }
+};
+
+
 module.exports = {
   register,
   login,
+  getAllUsers,
+  changePermission
+
 };

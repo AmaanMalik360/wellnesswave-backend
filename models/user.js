@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema(
       enum: ["student", "faculty", "staff", "counsellor", 'admin'],
       required: true,
     },
+    active:{
+      type: Boolean,
+      default: false
+    },
     picture: {
       type: String,
     },
@@ -68,6 +72,14 @@ const userSchema = new mongoose.Schema(
         type: String,
       },
     },
+    adminDetails:{
+      employeeId: {
+        type: String
+      },
+      designation: {
+        type: String,
+      },
+    }
   },
   { timestamps: true }
 );
