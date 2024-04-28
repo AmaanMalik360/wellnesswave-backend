@@ -24,10 +24,12 @@ dotenv.config({ path: './.env' });
 // Setting up router
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/post')
+const appointmentRoutes = require('./routes/appointment');
 
 // All the routes are used here.
 app.use(authRoutes);
 app.use(postRoutes);
+app.use(appointmentRoutes);
 
 // // Define the user object to insert
 // const newUser = {

@@ -225,7 +225,7 @@ const login = async (req, res) => {
     const user = await User.findOne({ email });
     console.log(user);
     if (!user) 
-      res.status(404).send({ message:"No user found"});
+      return res.status(404).send({ message:"No user found"});
 
     if(user.role === 'admin')
     {
@@ -242,15 +242,18 @@ const login = async (req, res) => {
     const matchPassword = await bcrypt.compare(password, user.password);
     console.log("Match Password------>",matchPassword)
     if (!matchPassword) 
-      res.status(400)({ message: 'Invalid credentials'});
+      return res.status(400).send({ message: 'Invalid credentials'});
 
+    if(!user.active)
+      return res.status(403).send({ message: 'You are not allowed to sign in.'});
+    
     const token = jwt.sign(
       { id: user.id }, process.env.JWT_SECRET, { expiresIn: '6h' }
     );
 
-    res.status(200).send({ message: 'User signed in successfully', user, token })
+    return res.status(200).send({ message: 'User signed in successfully', user, token })
   } catch (err) {
-    res.status(400).send({message:"Error. Please try again"});
+    return res.status(400).send({message:"Error. Please try again"});
   }
 };
 
@@ -267,27 +270,37 @@ const getAllUsers = async (req, res) => {
 
 const changePermission = async (req, res) => {
   try {
-    console.log('change permission');
     const { userId } = req.body; // Assuming userId is extracted from JWT payload
 
-    console.log("User Id", userId);
-    
-    // Find the user by userId and toggle the active flag using findByIdAndUpdate
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $set: { active: { $not: "$active" } } }, // Toggle active flag using $not operator
-      { new: true } // To return the updated document
-    );
-
-    console.log(updatedUser);
-    if (!updatedUser) {
-      return res.status(404).send({ message: "User not found" });
+    // Find the user by userId
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).send({ message: "User not found" });
     }
+    
+    console.log("User Before Updating:", user)
+    // Toggle the active flag
+    user.active = !user.active;
 
-    return res.status(200).send({ message: "User permission changed successfully", user: updatedUser });
+    console.log("User after updating:", user)
+    const newUser = await user.save();
+    console.log("User after Saving:", newUser)
+    
+    res.status(200).send({ message: "User permission changed successfully", newUser });
   } catch (err) {
     console.error("Error changing user permission:", err);
-    return res.status(500).send({ message: "Failed to change user permission" });
+    res.status(500).send({ message: "Failed to change user permission" });
+  }
+};
+
+// Controller function to fetch all counsellor
+const getAllCounsellors = async (req, res) => {
+  try {
+      const users = await User.find({role: 'counsellor'})
+      res.status(200).send({users});
+  } catch (error) {
+      console.error("Error fetching Users:", error);
+      res.status(500).json({ error: "Failed to fetch Users" });
   }
 };
 
@@ -296,6 +309,6 @@ module.exports = {
   register,
   login,
   getAllUsers,
-  changePermission
-
+  changePermission,
+  getAllCounsellors
 };
