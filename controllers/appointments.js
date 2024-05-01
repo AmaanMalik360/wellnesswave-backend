@@ -27,13 +27,13 @@ const createAppointment = async (req, res) => {
           return res.status(409).send({ message: "This slot is already booked" });
         }
 
-        console.log({
-          userId,
-          date: parsedDate,
-          startTime: parsedStartTime,
-          endTime: parsedEndTime,
-          counsellorId,
-        })
+        // console.log({
+        //   userId,
+        //   date: parsedDate,
+        //   startTime: parsedStartTime,
+        //   endTime: parsedEndTime,
+        //   counsellorId,
+        // })
 
         // Create a new appointment object using the parsed fields
         const appointment = new Appointment({
@@ -58,10 +58,10 @@ const createAppointment = async (req, res) => {
 const getAllAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find();
-    res.status(200).send({ appointments });
+    return res.status(200).send({ appointments });
   } catch (error) {
     console.error("Error fetching appointments:", error);
-    res.status(500).json({ error: "Failed to fetch appointments" });
+    return res.status(500).send({ error: "Failed to fetch appointments" });
   }
 };
 
@@ -72,18 +72,40 @@ const getAppointmentById = async (req, res) => {
     const appointment = await Appointment.findById(appointmentId);
 
     if (!appointment) {
-      return res.status(404).json({ error: "appointment not found" });
+      return res.status(404).send({ error: "appointment not found" });
     }
 
-    res.status(200).json(appointment);
+    return res.status(200).send(appointment);
   } catch (error) {
     console.error("Error fetching appointment:", error);
-    res.status(500).json({ error: "Failed to fetch appointment" });
+    return res.status(500).send({ error: "Failed to fetch appointment" });
   }
+};
+
+// Controller function to delete an appointment by ID
+const deleteAppointmentById = async (req, res) => {
+    try {
+      const {id} = req.params;
+      console.log("Id", id)
+      // Check if the appointment exists
+      const appointment = await Appointment.findById(id);
+      if (!appointment) {
+          return res.status(404).send({ error: "Appointment not found" });
+      }
+
+      // Delete the appointment from the database
+      await Appointment.findByIdAndDelete(id);
+
+      return res.status(200).send({ message: "Appointment deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
+      return res.status(500).send({ error: "Failed to delete appointment" });
+    }
 };
 
 module.exports = {
   createAppointment,
   getAllAppointments,
   getAppointmentById,
+  deleteAppointmentById
 };
