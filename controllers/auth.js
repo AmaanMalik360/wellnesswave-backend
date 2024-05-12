@@ -264,7 +264,7 @@ const getAllUsers = async (req, res) => {
       res.status(200).send({users});
   } catch (error) {
       console.error("Error fetching Users:", error);
-      res.status(500).json({ error: "Failed to fetch Users" });
+      res.status(500).send({ error: "Failed to fetch Users" });
   }
 };
 
@@ -293,22 +293,56 @@ const changePermission = async (req, res) => {
   }
 };
 
-// Controller function to fetch all counsellor
-const getAllCounsellors = async (req, res) => {
+const assignCounsellor = async (req, res) => {
   try {
-      const users = await User.find({role: 'counsellor'})
-      res.status(200).send({users});
-  } catch (error) {
-      console.error("Error fetching Users:", error);
-      res.status(500).json({ error: "Failed to fetch Users" });
+    const { userId, counsellorId } = req.body;
+
+    console.log("Counsellor Id",counsellorId)
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { counsellorId },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    res.status(200).send({ message: "Counsellor assigned successfully", user: updatedUser });
+  } catch (err) {
+    console.error("Error assigning counsellor:", err);
+    res.status(500).send({ message: "Failed to assign counsellor" });
   }
 };
 
+// Controller function to fetch all counsellor
+const getAllCounsellors = async (req, res) => {
+  try {
+      const counsellors = await User.find({role: 'counsellor'})
+      res.status(200).send({counsellors});
+  } catch (error) {
+      console.error("Error fetching Users:", error);
+      res.status(500).send({ error: "Failed to fetch Users" });
+  }
+};
+
+// Controller function to fetch a Users
+const getOneUser = async (req, res) => {
+  try {
+      const user = await User.findById(req.params.id)
+      res.status(200).send({user});
+  } catch (error) {
+      console.error("Error fetching Users:", error);
+      res.status(500).send({ error: "Failed to fetch Users" });
+  }
+};
 
 module.exports = {
   register,
   login,
   getAllUsers,
   changePermission,
-  getAllCounsellors
+  getAllCounsellors,
+  assignCounsellor,
+  getOneUser
 };

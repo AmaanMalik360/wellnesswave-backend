@@ -1,8 +1,11 @@
 const Appointment = require("../models/appointment");
+const User = require("../models/user");
 
 const createAppointment = async (req, res) => {
     const { userId, date, startTime, endTime, counsellorId } = req.body;
-    try {
+    try {        
+        const user = await User.findById(userId);
+
         // Parse date string into Date object
         const parsedDate = new Date(date);
         // Manually adjust the date by adding a day
@@ -15,25 +18,44 @@ const createAppointment = async (req, res) => {
         // Adjust startTime and endTime for timezone difference (if necessary)
         parsedStartTime.setHours(parsedStartTime.getHours() + 5);
         parsedEndTime.setHours(parsedEndTime.getHours() + 5);
+
+
+        // Calculate the deadline for appointments until Friday at 4:30 PM
+        const fridayDeadline = new Date();
+        fridayDeadline.setHours(16, 30, 0, 0); // 4:30 PM
+        fridayDeadline.setDate(fridayDeadline.getDate() + (5 - fridayDeadline.getDay())); // Move to Friday
+        fridayDeadline.setHours(fridayDeadline.getHours() + 6);
+
+        console.log("Friday Deadline",fridayDeadline)
+
+        // Check if there is an appointment for the user until Friday at 4:30 PM
+        const appointmentTillFriday = await Appointment.findOne({
+            userId,
+            startTime: { $lte: fridayDeadline }
+        });
+
+        if (appointmentTillFriday) {
+            return res.status(409).send({ message: "You already have an appointment scheduled this week." });
+        }
         
         // Check if there is a conflicting appointment
         const existingAppointment = await Appointment.findOne({
           date: parsedDate,
           startTime: parsedStartTime,
-          counsellorId,
+          counsellorId: counsellorId,
         });
 
         if (existingAppointment) {
           return res.status(409).send({ message: "This slot is already booked" });
         }
 
-        // console.log({
-        //   userId,
-        //   date: parsedDate,
-        //   startTime: parsedStartTime,
-        //   endTime: parsedEndTime,
-        //   counsellorId,
-        // })
+        console.log({
+          userId,
+          date: parsedDate,
+          startTime: parsedStartTime,
+          endTime: parsedEndTime,
+          counsellorId,
+        })
 
         // Create a new appointment object using the parsed fields
         const appointment = new Appointment({
@@ -82,6 +104,45 @@ const getAppointmentById = async (req, res) => {
   }
 };
 
+// Controller function to retrieve appointments by a specific user
+const getAppointmentByUserId = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const userAppointments = await Appointment.find({userId: userId});
+
+    if (!userAppointments ) {
+      return res.status(404).send({ error: "appointments not found" });
+    }
+
+    return res.status(200).send({userAppointments});
+  } catch (error) {
+    console.error("Error fetching appointment:", error);
+    return res.status(500).send({ error: "Failed to fetch appointment" });
+  }
+};
+
+const getAppointmentByCounsellorId = async (req, res) => {
+  try {
+    const counsellorId = req.params.counsellorId;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set time to start of the day
+    const counsellorAppointments = await Appointment.find({
+      counsellorId: counsellorId,
+      date: { $gte: today }
+    }).populate('counsellorId') // Populate the counsellor object
+      .populate('userId'); // Populate the user object
+
+    if (!counsellorAppointments.length) {
+      return res.status(404).send({ error: "Appointments not found" });
+    }
+
+    return res.status(200).send({ counsellorAppointments });
+  } catch (error) {
+    console.error("Error fetching appointment:", error);
+    return res.status(500).send({ error: "Failed to fetch appointment" });
+  }
+};
+
 // Controller function to delete an appointment by ID
 const deleteAppointmentById = async (req, res) => {
     try {
@@ -107,5 +168,7 @@ module.exports = {
   createAppointment,
   getAllAppointments,
   getAppointmentById,
-  deleteAppointmentById
+  deleteAppointmentById,
+  getAppointmentByUserId,
+  getAppointmentByCounsellorId
 };

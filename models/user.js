@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema(
     picture: {
       type: String,
     },
+    counsellorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
     // Additional fields based on role
     studentDetails: {
       rollNo: {

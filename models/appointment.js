@@ -25,14 +25,12 @@ const appointmentSchema = new Schema({
         ref: 'User',
         required: true
     },
-    completed: {
-        type: Boolean,
-        default: false
+    status: {
+        type: String,
+        enum: ['Attended', 'Missed', 'Coming'],
+        default: 'Coming'
     }
 });
 const Appointment = mongoose.model('Appointment', appointmentSchema);
 
 module.exports = Appointment;
-
-
-
