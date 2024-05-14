@@ -19,28 +19,45 @@ const createAppointment = async (req, res) => {
         parsedStartTime.setHours(parsedStartTime.getHours() + 5);
         parsedEndTime.setHours(parsedEndTime.getHours() + 5);
 
-
         // Calculate the deadline for appointments until Friday at 4:30 PM
         const fridayDeadline = new Date();
         fridayDeadline.setHours(16, 30, 0, 0); // 4:30 PM
         fridayDeadline.setDate(fridayDeadline.getDate() + (5 - fridayDeadline.getDay())); // Move to Friday
         fridayDeadline.setHours(fridayDeadline.getHours() + 6);
 
-        console.log("Friday Deadline",fridayDeadline)
+        // Calculate the end of next week (Friday at 4:30 PM)
+        const fridayNextWeek = new Date(fridayDeadline);
+        fridayNextWeek.setDate(fridayDeadline.getDate() + 7);
+        fridayNextWeek.setHours(16, 30, 0, 0);
+
+        console.log("Friday This Deadline",fridayDeadline)
+        console.log("Friday Next Deadline",fridayNextWeek)
 
         // Check if there is an appointment for the user until Friday at 4:30 PM
-        const appointmentTillFriday = await Appointment.findOne({
+        const appointmentThisWeek = await Appointment.findOne({
             userId,
             startTime: { $lte: fridayDeadline }
         });
+        // Check if there is an appointment for the user until Friday at 4:30 PM
+        const appointmentNextWeek = await Appointment.findOne({
+            userId,
+            startTime: { $gte: fridayDeadline, $lte: fridayNextWeek }
+        });
+        
+        if(appointmentThisWeek)
+        {
+          if (parsedStartTime < fridayDeadline) {
+              return res.status(409).send({ message: "You already have an appointment scheduled this week." });
+          }
+        }
 
-        if (appointmentTillFriday) {
-            return res.status(409).send({ message: "You already have an appointment scheduled this week." });
+        if(appointmentNextWeek && parsedStartTime >= fridayDeadline && parsedStartTime <= fridayNextWeek)
+        {
+          return res.status(409).send({ message: "You already have an appointment scheduled next week." });
         }
         
         // Check if there is a conflicting appointment
         const existingAppointment = await Appointment.findOne({
-          date: parsedDate,
           startTime: parsedStartTime,
           counsellorId: counsellorId,
         });
@@ -121,20 +138,26 @@ const getAppointmentByUserId = async (req, res) => {
   }
 };
 
-const getAppointmentByCounsellorId = async (req, res) => {
+const getAppointmentByCounsellorIdForToday = async (req, res) => {
   try {
     const counsellorId = req.params.counsellorId;
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set time to start of the day
+    const startOfDay = new Date(today);
+    startOfDay.setHours(0, 0, 0, 0); // Set time to start of the day
+
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999); // Set time to end of the day
+
     const counsellorAppointments = await Appointment.find({
       counsellorId: counsellorId,
-      date: { $gte: today }
+      startTime: { $gte: startOfDay, $lte: endOfDay },
+      status: "Coming"
     }).populate('counsellorId') // Populate the counsellor object
       .populate('userId'); // Populate the user object
 
-    if (!counsellorAppointments.length) {
-      return res.status(404).send({ error: "Appointments not found" });
-    }
+    // if (counsellorAppointments.length === 0) {
+    //   return res.status(404).send({ error: "Appointments not found for today" });
+    // }
 
     return res.status(200).send({ counsellorAppointments });
   } catch (error) {
@@ -142,6 +165,48 @@ const getAppointmentByCounsellorId = async (req, res) => {
     return res.status(500).send({ error: "Failed to fetch appointment" });
   }
 };
+
+const getAllCounsellorAppointmentsForAdmin = async (req, res) =>{
+  try {
+    const counsellorId = req.params.counsellorId;
+    const counsellorAppointments = await Appointment.find({
+      counsellorId: counsellorId
+    })
+
+    return res.status(200).send({counsellorAppointments});
+  } catch (error) {
+    console.error("Error fetching appointment:", error);
+    return res.status(500).send({ error: "Failed to fetch counsellors appointment" });
+  }
+}
+
+const getAllUserAppointmentsForToday = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const appointments = await Appointment.find();
+
+    const today = new Date();
+    const startOfDay = new Date(today);
+    startOfDay.setHours(0, 0, 0, 0); // Set time to start of the day
+
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999); // Set time to end of the day
+
+    const userAppointments = await Appointment.find({
+      userId: userId,
+      startTime: { $gte: startOfDay, $lte: endOfDay },
+      status: "Coming"
+    })
+    // .populate('counsellorId') // Populate the counsellor object
+    // .populate('userId'); // Populate the user object
+    // console.log({ userAppointments, appointments })
+    return res.status(200).send({ userAppointments, appointments });
+  } catch (error) {
+    console.error("Error fetching appointment:", error);
+    return res.status(500).send({ error: "Failed to fetch appointment" });
+  }
+};
+
 
 // Controller function to delete an appointment by ID
 const deleteAppointmentById = async (req, res) => {
@@ -170,5 +235,7 @@ module.exports = {
   getAppointmentById,
   deleteAppointmentById,
   getAppointmentByUserId,
-  getAppointmentByCounsellorId
+  getAllCounsellorAppointmentsForAdmin,
+  getAppointmentByCounsellorIdForToday,
+  getAllUserAppointmentsForToday
 };

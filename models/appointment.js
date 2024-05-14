@@ -27,8 +27,13 @@ const appointmentSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['Attended', 'Missed', 'Coming'],
+        enum: ['Passed', 'Ongoing', 'Coming'],
         default: 'Coming'
+    },
+    attendance: {
+        type: String,
+        enum: ['Present', 'Absent','Unattended'],
+        default: 'Unattended'
     }
 });
 const Appointment = mongoose.model('Appointment', appointmentSchema);
