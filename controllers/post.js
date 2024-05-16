@@ -53,6 +53,19 @@ const getAllPosts = async (req, res) => {
     }
 };
 
+// Controller function to fetch all counsellor posts
+const getAllCounsellorPosts = async (req, res) => {
+    try {
+        const counsellorId = req.params.counsellorId;
+        const posts = await Post.find({creator: counsellorId})
+
+        res.status(200).send({posts});
+    } catch (error) {
+        console.error("Error fetching posts:", error);
+        res.status(500).json({ error: "Failed to fetch posts" });
+    }
+};
+
 // Controller function to retrieve a specific post by postId
 const getPostById = async (req, res) => {
     try {
@@ -74,4 +87,5 @@ module.exports = {
     createPost,
     getAllPosts,
     getPostById,
+    getAllCounsellorPosts
 };

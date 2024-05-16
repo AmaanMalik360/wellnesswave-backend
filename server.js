@@ -2,12 +2,15 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const dotenv = require('dotenv');
-
+const User = require("./models/user")
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const mongoUri = "mongodb+srv://amaanmalik0360:wellnesswave@cluster0.qw0i9kd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+// mongodb+srv://amaanmalik0360:wellnesswave@cluster0.qw0i9kd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+
+const mongoUri = "mongodb+srv://f190349:Up4YupdpeLGWM20g@cluster0.mv1ezb7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
 
 mongoose.connect(mongoUri)
 .then(() => {
@@ -33,10 +36,11 @@ app.use(appointmentRoutes);
 
 // // Define the user object to insert
 // const newUser = {
+//   _id:'6645704a7367e129527f735b',
 //   name: 'Admin 1',
 //   email: 'admin1@gmail.com',
 //   password: 'Admin123',
-//   contact: '03000856074',
+//   contact: '03194104235',
 //   role: 'admin',
 //   active: true, // Assuming you want the user to be inactive initially
 //   adminDetails: {
