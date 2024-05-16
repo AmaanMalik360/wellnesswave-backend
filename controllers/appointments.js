@@ -108,13 +108,12 @@ const getAllAppointments = async (req, res) => {
 const getAppointmentById = async (req, res) => {
   try {
     const appointmentId = req.params.id;
-    const appointment = await Appointment.findById(appointmentId);
-
+    const appointment = await Appointment.findById(appointmentId).populate('counsellorId').populate('userId'); 
     if (!appointment) {
       return res.status(404).send({ error: "appointment not found" });
     }
 
-    return res.status(200).send(appointment);
+    return res.status(200).send({appointment});
   } catch (error) {
     console.error("Error fetching appointment:", error);
     return res.status(500).send({ error: "Failed to fetch appointment" });
@@ -171,7 +170,8 @@ const getAllCounsellorAppointmentsForAdmin = async (req, res) =>{
     const counsellorId = req.params.counsellorId;
     const counsellorAppointments = await Appointment.find({
       counsellorId: counsellorId
-    })
+    }).populate('counsellorId')
+      .populate('userId');
 
     return res.status(200).send({counsellorAppointments});
   } catch (error) {
@@ -207,7 +207,6 @@ const getAllUserAppointmentsForToday = async (req, res) => {
   }
 };
 
-
 // Controller function to delete an appointment by ID
 const deleteAppointmentById = async (req, res) => {
     try {
@@ -229,6 +228,44 @@ const deleteAppointmentById = async (req, res) => {
     }
 };
 
+// Controller to update appointment status to "Ongoing"
+const updateAppointmentStatusOngoing = async (req, res) => {
+  try {
+    const appointment = await Appointment.findByIdAndUpdate(
+      req.params.id,
+      { status: "Ongoing" },
+      { new: true }
+    );
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+    res.status(200).json({ appointment });
+  } catch (error) {
+    console.error("Error updating appointment status to Ongoing:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// Controller to update appointment status to "Passed" and set attendance
+const updateAppointmentStatusPassed = async (req, res) => {
+  try {
+    const { attendance } = req.query;
+    // console.log(attendance)
+    const appointment = await Appointment.findByIdAndUpdate(
+      req.params.id,
+      { status: "Passed", attendance },
+      { new: true }
+    );
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+    res.status(200).json({ appointment });
+  } catch (error) {
+    console.error("Error updating appointment status to Passed:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   createAppointment,
   getAllAppointments,
@@ -237,5 +274,7 @@ module.exports = {
   getAppointmentByUserId,
   getAllCounsellorAppointmentsForAdmin,
   getAppointmentByCounsellorIdForToday,
-  getAllUserAppointmentsForToday
+  getAllUserAppointmentsForToday,
+  updateAppointmentStatusOngoing,
+  updateAppointmentStatusPassed
 };

@@ -1,5 +1,5 @@
 const express = require("express");
-const { createAppointment, getAllAppointments, getAppointmentById, deleteAppointmentById, getAppointmentByUserId, getAppointmentByCounsellorIdForToday, getAllUserAppointmentsForToday, getAllCounsellorAppointmentsForAdmin } = require("../controllers/appointments");
+const { createAppointment, getAllAppointments, getAppointmentById, deleteAppointmentById, getAppointmentByUserId, getAppointmentByCounsellorIdForToday, getAllUserAppointmentsForToday, getAllCounsellorAppointmentsForAdmin, updateAppointmentStatusPassed, updateAppointmentStatusOngoing } = require("../controllers/appointments");
 const router = express.Router();
 
 // Route to create a appointment
@@ -25,5 +25,21 @@ router.get("/appointments/all-counsellor/:counsellorId", getAllCounsellorAppoint
 
 // Route to delete an appointment
 router.delete("/appointments/:id", deleteAppointmentById);
+
+// New route to update appointment status and attendance
+router.patch("/appointments/status/:id", async (req, res) => {
+    try {
+      const { attendance } = req.query;
+      console.log(attendance)
+      if (attendance) {
+        await updateAppointmentStatusPassed(req, res);
+      } else {
+        await updateAppointmentStatusOngoing(req, res);
+      }
+    } catch (error) {
+      console.error("Error updating appointment status:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
 
 module.exports = router;
